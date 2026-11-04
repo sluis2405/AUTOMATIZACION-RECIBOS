@@ -1,97 +1,193 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Recibos - Sistema Profesional</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
     <style>
-      /* 内联样式确保主题色立即生效，避免闪烁 */
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-      }
-      html.light,
-      html.light body {
-        background-color: #ffffff !important;
-        color: #000000;
-      }
-      html.dark,
-      html.dark body {
-        background-color: #1a1a1a !important;
-        color: #ffffff;
-      }
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 1000px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .form-section, .preview-section {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            min-width: 300px;
+        }
+        h2 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em; }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1d4ed8; }
+        button.secondary { background-color: #64748b; margin-top: 10px; }
+        
+        /* Estilos del Recibo */
+        .recibo {
+            border: 2px dashed var(--border);
+            padding: 20px;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .recibo-header { text-align: center; margin-bottom: 20px; }
+        .recibo-header h1 { margin: 0; color: var(--primary); font-size: 1.5em; }
+        .recibo-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
+        .recibo-total { font-size: 1.3em; font-weight: bold; color: var(--primary); text-align: right; margin-top: 20px; }
+        .firma { margin-top: 40px; text-align: center; border-top: 1px solid #000; width: 60%; margin-left: auto; margin-right: auto; padding-top: 5px; }
+
+        /* Estilos para impresión */
+        @media print {
+            body { background: white; padding: 0; }
+            .form-section, button { display: none !important; }
+            .preview-section { box-shadow: none; padding: 0; width: 100%; }
+            .recibo { border: 1px solid #000; }
+        }
     </style>
-    <script>
-      // 在 React 加载前立即设置主题，避免闪烁
-      (function () {
-        const isInIframe = window.self !== window.top;
+</head>
+<body>
 
-        function applyThemeToDOM(theme) {
-          document.documentElement.classList.remove("light", "dark");
-          document.documentElement.classList.add(theme);
-          document.documentElement.setAttribute("data-theme", theme);
-        }
+<div class="container">
+    <!-- Sección del Formulario -->
+    <div class="form-section">
+        <h2><i class="fas fa-edit"></i> Datos del Recibo</h2>
+        <div class="form-group">
+            <label>Fecha:</label>
+            <input type="date" id="fecha">
+        </div>
+        <div class="form-group">
+            <label>Número de Recibo:</label>
+            <input type="text" id="numero" placeholder="Ej: 001-2024">
+        </div>
+        <div class="form-group">
+            <label>Recibido de (Nombre del Cliente):</label>
+            <input type="text" id="cliente" placeholder="Nombre completo">
+        </div>
+        <div class="form-group">
+            <label>La suma de (Concepto):</label>
+            <textarea id="concepto" rows="3" placeholder="Descripción del servicio o producto"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Monto ($):</label>
+            <input type="number" id="monto" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+            <label>Método de Pago:</label>
+            <select id="metodo">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia Bancaria</option>
+                <option value="Tarjeta">Tarjeta de Crédito/Débito</option>
+            </select>
+        </div>
+        <button onclick="generarRecibo()">Generar Vista Previa</button>
+    </div>
 
-        if (isInIframe) {
-          // 监听父窗口主动推送的主题消息
-          window.addEventListener("message", function (event) {
-            if (event.data && typeof event.data.theme === "string") {
-              const theme = event.data.theme;
-              if (theme === "light" || theme === "dark") {
-                applyThemeToDOM(theme);
-              }
-            }
-          });
-        } else {
-          // 非 iframe 环境，使用默认 light 主题
-          applyThemeToDOM("light");
-        }
-      })();
-    </script>
-      <script>
-      (function () {
-        if (window.self === window.top) return;
-        var reported = {};
-        window.addEventListener("error", function (event) {
-          // 资源加载失败的 error 事件没有 message，此处仅上报 JS 运行时错误
-          if (!event || !event.message) return;
-          var key =
-            event.message + "|" + (event.filename || "") + "|" + (event.lineno || 0);
-          if (reported[key]) return; // 相同错误只上报一次，避免渲染循环刷屏
-          reported[key] = true;
-          try {
-            window.parent.postMessage(
-              {
-                type: "sandbox-runtime-error",
-                payload: {
-                  message: String(event.message).slice(0, 500),
-                  filename: event.filename || "",
-                  lineno: event.lineno || 0,
-                  colno: event.colno || 0,
-                  stack:
-                    event.error && event.error.stack
-                      ? String(event.error.stack).slice(0, 2000)
-                      : ""
-                }
-              },
-              "*"
-            );
-          } catch (e) {
-            /* 上报失败不影响页面运行 */
-          }
-        });
-      })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    <!-- Sección de Vista Previa -->
+    <div class="preview-section">
+        <h2><i class="fas fa-eye"></i> Vista Previa</h2>
+        <div id="recibo-preview" class="recibo">
+            <div class="recibo-header">
+                <h1>RECIBO DE PAGO</h1>
+                <p style="color: #64748b; font-size: 0.9em;">Documento oficial de transacción</p>
+            </div>
+            <div class="recibo-row">
+                <span><strong>Fecha:</strong></span>
+                <span id="prev-fecha">--/--/----</span>
+            </div>
+            <div class="recibo-row">
+                <span><strong>N° Recibo:</strong></span>
+                <span id="prev-numero">---</span>
+            </div>
+            <div class="recibo-row">
+                <span><strong>Recibido de:</strong></span>
+                <span id="prev-cliente">---</span>
+            </div>
+            <div style="margin: 15px 0; padding: 10px; background: #f8fafc; border-radius: 4px;">
+                <strong>Por concepto de:</strong><br>
+                <span id="prev-concepto" style="color: #475569;">---</span>
+            </div>
+            <div class="recibo-row">
+                <span><strong>Método de Pago:</strong></span>
+                <span id="prev-metodo">---</span>
+            </div>
+            <div class="recibo-total">
+                TOTAL: $<span id="prev-monto">0.00</span>
+            </div>
+            <div class="firma">
+                Firma y Sello
+            </div>
+        </div>
+        <button class="secondary" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+    </div>
+</div>
+
+<script>
+    // Establecer la fecha de hoy por defecto
+    document.getElementById('fecha').valueAsDate = new Date();
+
+    function generarRecibo() {
+        // Obtener valores
+        const fecha = document.getElementById('fecha').value;
+        const numero = document.getElementById('numero').value || 'N/A';
+        const cliente = document.getElementById('cliente').value || 'N/A';
+        const concepto = document.getElementById('concepto').value || 'N/A';
+        const monto = parseFloat(document.getElementById('monto').value || 0).toFixed(2);
+        const metodo = document.getElementById('metodo').value;
+
+        // Formatear fecha
+        const fechaObj = new Date(fecha);
+        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Actualizar vista previa
+        document.getElementById('prev-fecha').textContent = fechaFormateada;
+        document.getElementById('prev-numero').textContent = numero;
+        document.getElementById('prev-cliente').textContent = cliente;
+        document.getElementById('prev-concepto').textContent = concepto;
+        document.getElementById('prev-metodo').textContent = metodo;
+        document.getElementById('prev-monto').textContent = monto;
+    }
+</script>
+
+</body>
 </html>
